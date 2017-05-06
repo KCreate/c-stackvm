@@ -13,7 +13,7 @@ make vm
 bin/vm
 ```
 
-## Usage
+## Usage
 
 Keep in mind, this repository only contains the virtual machine. To generate an executable
 for it, you will need the assembler from my
