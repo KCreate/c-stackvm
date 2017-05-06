@@ -21,13 +21,13 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
 
   // Allocate and initialize the Header struct
   Header* header = calloc(1, sizeof(Header));
-  if (!(header)) {
+  if (!header) {
     return exe_err_allocation;
   }
 
   // Read the entry address and the load table size
-  unsigned int entry_addr = ((unsigned int *) buffer + 1)[0];
-  size_t load_table_size = ((unsigned int *) buffer + 2)[0];
+  unsigned int entry_addr = *((unsigned int *) buffer + 1);
+  size_t load_table_size = *((unsigned int *) buffer + 2);
 
   header->entry_addr = entry_addr;
   header->load_table_size = load_table_size;
@@ -38,8 +38,8 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
   }
 
   // Allocate space for the load table
-  LoadEntry* load_table = calloc(load_table_size, sizeof(LoadEntry));
-  if (!(load_table)) {
+  LoadEntry* load_table = malloc(load_table_size * sizeof(LoadEntry));
+  if (!load_table) {
     return exe_err_allocation;
   }
 
@@ -53,17 +53,17 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
   }
 
   // Allocate space for the executable
-  *result = calloc(1, sizeof(Executable));
-  if (!(result)) {
+  *result = malloc(sizeof(Executable));
+  if (!(*result)) {
     return exe_err_allocation;
   }
 
   size_t data_segment_size = size - 12 -(load_table_size * 12);
-  char* input_data = buffer + 3 + (load_table_size * 12);
+  char* input_data = buffer + 12 + (load_table_size * 12);
 
   // Allocate space for the data segment
   char* data_segment = malloc(data_segment_size);
-  if (!(data_segment)) {
+  if (!data_segment) {
     return exe_err_allocation;
   }
 

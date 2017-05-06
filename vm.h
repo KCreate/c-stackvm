@@ -12,6 +12,7 @@
 #define INVALID_SYSCALL       0x04
 #define EXECUTABLE_TOO_BIG    0x05
 #define INVALID_EXECUTABLE    0x06
+#define ALLOCATION_FAILURE    0x07
 
 // Registers
 #define VM_REGCOUNT     64
@@ -146,10 +147,23 @@ typedef struct VM {
   byte exit_code;
 } VM;
 
+typedef enum {
+  vm_err_regular_exit,
+  vm_err_illegal_memory_access,
+  vm_err_invalid_instruction,
+  vm_err_invalid_register,
+  vm_err_invalid_syscall,
+  vm_err_executable_too_big,
+  vm_err_invalid_executable,
+  vm_err_allocation,
+  vm_err_internal_failure
+} VMError;
+
 // VM Methods
-bool vm_create(VM** vm);
+VMError vm_create(VM** vm);
 void vm_clean(VM* vm);
-bool vm_flash(Executable* exe);
-bool vm_cycle(VM* vm);
+VMError vm_flash(VM* vm, Executable* exe);
+void vm_cycle(VM* vm);
+char* vm_err(VMError errcode);
 
 #endif

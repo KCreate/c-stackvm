@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string.h>
 #include "vm.h"
 #include "exe.h"
 
@@ -49,9 +50,17 @@ int main(int argc, char** argv) {
 
   VM* vm;
 
-  if (!vm_create(&vm)) {
+  VMError create_result = vm_create(&vm);
+  if (create_result != vm_err_regular_exit) {
     fprintf(stderr, "Could not initialize vm\n");
+    fprintf(stderr, "Reason: %s\n", vm_err(create_result));
     return 1;
+  }
+
+  VMError flash_result = vm_flash(vm, exe);
+  if (flash_result != vm_err_regular_exit) {
+    fprintf(stderr, "Could not load executable\n");
+    fprintf(stderr, "Reason: %s\n", vm_err(flash_result));
   }
 
   vm_clean(vm);
