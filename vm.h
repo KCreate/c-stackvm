@@ -101,8 +101,17 @@ typedef enum opcode {
   op_ret,
 
   op_nop,
-  op_syscall
+  op_syscall,
+
+  // This is here so we can compare an integer against it and
+  // thus check if it's a valid instruction
+  op_num_types
 } opcode;
+
+/*
+ * Contains the amounts of bytes each opcode takes up
+ * */
+uint64_t opcode_length_lookup_table[59];
 
 // Syscall ids
 #define VM_SYS_EXIT   0x00
@@ -153,6 +162,7 @@ VMError vm_create(VM** vm);
 void vm_clean(VM* vm);
 VMError vm_flash(VM* vm, Executable* exe);
 bool vm_cycle(VM* vm);
+uint64_t vm_instruction_length(VM* vm, opcode instruction);
 char* vm_err(VMError errcode);
 
 #endif

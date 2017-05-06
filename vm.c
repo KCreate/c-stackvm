@@ -99,6 +99,28 @@ bool vm_cycle(VM* vm) {
 }
 
 /*
+ * Calculate the length of a given instruction at the current instruction pointer
+ * in the virtual machine
+ * */
+uint64_t vm_instruction_length(VM* vm, opcode instruction) {
+  switch (instruction) {
+    case op_loadi:
+    case op_push:
+      fprintf(stderr, "length decoding for loadi and push is not implemented yet");
+      exit(1);
+    default:
+
+      // Check if this is a valid instruction
+      // If not we just return 1 to jump over it
+      if (instruction >= op_num_types) {
+        return 1;
+      }
+
+      return opcode_length_lookup_table[instruction];
+  }
+}
+
+/*
  * Returns a human-readable version of an error code
  * */
 char* vm_err(VMError errcode) {
@@ -125,3 +147,78 @@ char* vm_err(VMError errcode) {
       return "Unknown error";
   }
 }
+
+/*
+ * Define the instruction lengths for all opcodes
+ * */
+uint64_t opcode_length_lookup_table[59] = {
+  2, // rpush
+  2, // rpop
+  3, // mov
+  0, // loadi (calculated in the vm itself)
+  2, // rst
+
+  3, // add
+  3, // sub
+  3, // mul
+  3, // div
+  3, // idiv
+  3, // rem
+  3, // irem
+
+  3, // fadd
+  3, // fsub
+  3, // fmul
+  3, // fdiv
+  3, // frem
+  3, // fexp
+
+  3, // flt
+  3, // fgt
+
+  3, // cmp
+  3, // lt
+  3, // gt
+  3, // ult
+  3, // ugt
+
+  3, // shr
+  3, // shl
+  3, // and
+  3, // xor
+  3, // or
+  2, // not
+
+  2, // inttofp
+  2, // sinttofp
+  2, // fptoint
+
+  6, // load
+  3, // loadr
+  9, // loads
+  6, // loadsr
+  6, // store
+  0, // push (this is calculated in the vm itself)
+
+  3,  // read
+  6,  // readc
+  6,  // reads
+  9,  // readcs
+  3,  // write
+  6,  // writec
+  6,  // writes
+  9,  // writecs
+  7,  // copy
+  13, // copyc
+
+  5, // jz
+  2, // jzr
+  5, // jmp
+  2, // jmpr
+  5, // call
+  2, // callr
+  1, // ret
+
+  1, // nop
+  1, // syscall
+};
