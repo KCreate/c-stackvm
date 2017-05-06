@@ -1,5 +1,8 @@
-#ifndef MACHINEH
-#define MACHINEH
+#include <stdbool.h>
+#include "exe.h"
+
+#ifndef VMH
+#define VMH
 
 // Error codes
 #define REGULAR_EXIT          0x00
@@ -123,10 +126,6 @@ typedef enum opcode {
 #define VM_VRAMWIDTH      240
 #define VM_VRAMHEIGHT     160
 
-// Header offsets
-#define VM_HEADER_MINSIZE 12
-#define VM_HEADER_MAGIC   0x4543494e
-
 // Types used throughout the VM
 typedef char byte;
 typedef short word;
@@ -147,36 +146,10 @@ typedef struct VM {
   byte exit_code;
 } VM;
 
-// An entry in the executables load table
-typedef struct LoadEntry {
-  address_t offset;
-  sizespec_t size;
-  address_t load;
-} LoadEntry;
-
-// The header of an executable
-typedef struct Header {
-  char magic[4];
-  address_t entry_addr;
-  int load_table_size;
-  LoadEntry* load_table;
-} Header;
-
-// An executable for the vm
-typedef struct Executable {
-  Header* header;
-  byte* data;
-  sizespec_t data_size;
-} Executable;
-
 // VM Methods
 bool vm_create(VM** vm);
 void vm_clean(VM* vm);
 bool vm_flash(Executable* exe);
 bool vm_cycle(VM* vm);
-
-// Executable methods
-Executable* exe_create(char* buffer, size_t size);
-void exe_clean(Executable* exe);
 
 #endif
