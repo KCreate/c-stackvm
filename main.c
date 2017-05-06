@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  char* buffer = malloc(inputStat.st_size);
+  uint8_t* buffer = malloc(inputStat.st_size);
 
   if (buffer == NULL) {
     fprintf(stderr, "Could not allocate space for executable\n");

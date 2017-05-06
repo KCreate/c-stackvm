@@ -11,8 +11,8 @@
  * */
 VMError vm_create(VM** vm) {
   VM* vm_ptr = malloc(sizeof(VM));
-  byte* memory = malloc(VM_MEMORYSIZE * sizeof(byte));
-  qword* regs = malloc(VM_REGCOUNT * sizeof(qword));
+  uint8_t* memory = malloc(VM_MEMORYSIZE * sizeof(uint8_t));
+  uint64_t* regs = malloc(VM_REGCOUNT * sizeof(uint64_t));
 
   if (vm_ptr == NULL || memory == NULL || regs == NULL) {
     return vm_err_allocation;
@@ -28,12 +28,23 @@ VMError vm_create(VM** vm) {
 }
 
 /*
+ * Clean the resources used by a vm struct
+ * */
+void vm_clean(VM* vm) {
+  if (vm == NULL) return;
+
+  free(vm->memory);
+  free(vm->regs);
+  return;
+}
+
+/*
  * Try to load a given executable into a virtual machine
  * */
 VMError vm_flash(VM* vm, Executable* exe) {
 
   // Reset the machine
-  memset(vm->regs, 0, VM_REGCOUNT * sizeof(qword));
+  memset(vm->regs, 0, VM_REGCOUNT * sizeof(uint64_t));
   memset(vm->memory, 0, VM_MEMORYSIZE);
   vm->running = true;
   vm->exit_code = 0;
@@ -78,14 +89,13 @@ VMError vm_flash(VM* vm, Executable* exe) {
 }
 
 /*
- * Clean the resources used by a vm struct
+ * Perform a single cpu cycle in the vm
+ * Returns false if no cycle could be performed
  * */
-void vm_clean(VM* vm) {
-  if (vm == NULL) return;
+bool vm_cycle(VM* vm) {
+  uint32_t ip = vm->regs[VM_REGIP];
 
-  free(vm->memory);
-  free(vm->regs);
-  return;
+  return true;
 }
 
 /*

@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include "exe.h"
 
 #ifndef VMH
@@ -127,24 +128,12 @@ typedef enum opcode {
 #define VM_VRAMWIDTH      240
 #define VM_VRAMHEIGHT     160
 
-// Types used throughout the VM
-typedef char byte;
-typedef short word;
-typedef int dword;
-typedef long int qword;
-typedef char opcode_t;
-typedef char reg_t;
-typedef int address_t;
-typedef int offset_t;
-typedef int sizespec_t;
-typedef short syscall_t;
-
 // The machine itself
 typedef struct VM {
-  byte* memory;
-  qword* regs;
+  uint8_t* memory;
+  uint64_t* regs;
   bool running;
-  byte exit_code;
+  uint8_t exit_code;
 } VM;
 
 typedef enum {
@@ -163,7 +152,7 @@ typedef enum {
 VMError vm_create(VM** vm);
 void vm_clean(VM* vm);
 VMError vm_flash(VM* vm, Executable* exe);
-void vm_cycle(VM* vm);
+bool vm_cycle(VM* vm);
 char* vm_err(VMError errcode);
 
 #endif

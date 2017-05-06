@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #ifndef EXEH
 #define EXEH
 
@@ -14,7 +16,7 @@ typedef struct LoadEntry {
 
 // The header of an executable
 typedef struct Header {
-  unsigned int entry_addr;
+  uint32_t entry_addr;
   size_t load_table_size;
   LoadEntry* load_table;
 } Header;
@@ -22,7 +24,7 @@ typedef struct Header {
 // An executable for the vm
 typedef struct Executable {
   Header* header;
-  char* data;
+  uint8_t* data;
   size_t data_size;
 } Executable;
 
@@ -35,7 +37,7 @@ typedef enum {
 } ExecutableError;
 
 // Executable methods
-ExecutableError exe_create(Executable** result, char* buffer, size_t size);
+ExecutableError exe_create(Executable** result, uint8_t* buffer, size_t size);
 char* exe_err(ExecutableError errcode);
 void exe_print_info(Executable* exe);
 void exe_clean(Executable* exe);
