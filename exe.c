@@ -6,7 +6,7 @@
 /*
  * Parse an executable from buffer
  * */
-ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
+ExecutableError exe_create(Executable** result, uint8_t* buffer, size_t size) {
 
   // Make sure the specified buffer is big enough to contain the
   // minimum neccessary fields
@@ -26,8 +26,8 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
   }
 
   // Read the entry address and the load table size
-  unsigned int entry_addr = *((unsigned int *) buffer + 1);
-  size_t load_table_size = *((unsigned int *) buffer + 2);
+  uint32_t entry_addr = *((uint32_t *) buffer + 1);
+  size_t load_table_size = *((uint32_t *) buffer + 2);
 
   header->entry_addr = entry_addr;
   header->load_table_size = load_table_size;
@@ -47,9 +47,9 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
 
   // Populate the table with the entries from the buffer
   for (int i = 0; i < load_table_size; i++) {
-    load_table[i].offset = ((unsigned int *) buffer + 3 + (i * 3))[0];
-    load_table[i].size   = ((unsigned int *) buffer + 3 + (i * 3))[1];
-    load_table[i].load   = ((unsigned int *) buffer + 3 + (i * 3))[2];
+    load_table[i].offset = ((uint32_t *) buffer + 3 + (i * 3))[0];
+    load_table[i].size   = ((uint32_t *) buffer + 3 + (i * 3))[1];
+    load_table[i].load   = ((uint32_t *) buffer + 3 + (i * 3))[2];
   }
 
   // Allocate space for the executable
@@ -58,11 +58,11 @@ ExecutableError exe_create(Executable** result, char* buffer, size_t size) {
     return exe_err_allocation;
   }
 
-  size_t data_segment_size = size - 12 -(load_table_size * 12);
-  char* input_data = buffer + 12 + (load_table_size * 12);
+  size_t data_segment_size = size - 12 - (load_table_size * 12);
+  uint8_t* input_data = buffer + 12 + (load_table_size * 12);
 
   // Allocate space for the data segment
-  char* data_segment = malloc(data_segment_size);
+  uint8_t* data_segment = malloc(data_segment_size);
   if (!data_segment) {
     return exe_err_allocation;
   }
