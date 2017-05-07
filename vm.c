@@ -58,7 +58,7 @@ VMError vm_flash(VM* vm, Executable* exe) {
   // we assume that there is an entry which loads
   // the entire data segment onto address 0x00
   if (exe->header->load_table_size == 0) {
-    if (exe->data_size > VM_MEMORYSIZE) {
+    if (!vm_legal_address(exe->data_size)) {
       return vm_err_executable_too_big;
     }
 
@@ -77,7 +77,7 @@ VMError vm_flash(VM* vm, Executable* exe) {
     }
 
     // Check overflow for machine memory
-    if (entry.load + entry.size > VM_MEMORYSIZE) {
+    if (!vm_legal_address(entry.load + entry.size)) {
       return vm_err_invalid_executable;
     }
 
@@ -118,6 +118,13 @@ uint64_t vm_instruction_length(VM* vm, opcode instruction) {
 
       return opcode_length_lookup_table[instruction];
   }
+}
+
+/*
+ * Returns true if address is legal
+ * */
+bool vm_legal_address(uint32_t address) {
+  return address < VM_MEMORYSIZE;
 }
 
 /*

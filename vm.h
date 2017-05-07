@@ -164,5 +164,6 @@ VMError vm_flash(VM* vm, Executable* exe);
 bool vm_cycle(VM* vm);
 uint64_t vm_instruction_length(VM* vm, opcode instruction);
 char* vm_err(VMError errcode);
+bool vm_legal_address(uint32_t address);
 
 #endif
