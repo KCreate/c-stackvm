@@ -89,7 +89,7 @@ void exe_print_info(Executable* exe) {
   for (int i = 0; i < size; i++) {
     printf("0x%08x : %7d bytes : 0x%08x\n",
       exe->header->load_table[i].offset,
-      exe->header->load_table[i].load,
+      exe->header->load_table[i].size,
       exe->header->load_table[i].load
     );
   }
