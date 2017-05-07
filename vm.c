@@ -133,6 +133,10 @@ bool vm_cycle(VM* vm) {
  * */
 void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
   switch (instruction) {
+    case op_loadi: {
+      uint8_t reg = vm->memory[ip + 1];
+      vm_move_mem_to_reg(vm, reg, ip + 2, vm_reg_size(reg));
+    }
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
