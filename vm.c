@@ -129,22 +129,6 @@ bool vm_cycle(VM* vm) {
 }
 
 /*
- * Execute an instruction
- * */
-void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
-  switch (instruction) {
-    case op_loadi: {
-      uint8_t reg = vm->memory[ip + 1];
-      vm_move_mem_to_reg(vm, reg, ip + 2, vm_reg_size(reg));
-    }
-    default:
-      vm->exit_code = INVALID_INSTRUCTION;
-      vm->running = false;
-      return;
-  }
-}
-
-/*
  * Calculate the length of a given instruction at the current instruction pointer
  * in the virtual machine
  * */
@@ -308,6 +292,23 @@ uint64_t vm_read_reg(VM* vm, uint8_t reg) {
  * */
 bool vm_legal_address(uint32_t address) {
   return address < VM_MEMORYSIZE;
+}
+
+/*
+ * Execute an instruction
+ * */
+void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
+  switch (instruction) {
+    case op_rpush:      vm_op_rpush(vm, ip); break;
+    case op_rpop:       vm_op_rpop(vm, ip); break;
+    case op_mov:        vm_op_mov(vm, ip); break;
+    case op_loadi:      vm_op_loadi(vm, ip); break;
+    case op_rst:        vm_op_rst(vm, ip); break;
+    default:
+      vm->exit_code = INVALID_INSTRUCTION;
+      vm->running = false;
+      return;
+  }
 }
 
 /*
