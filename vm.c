@@ -259,7 +259,7 @@ void vm_write_reg(VM* vm, uint8_t reg, uint64_t value) {
  * Moves a block of memory into a register
  * */
 void vm_move_mem_to_reg(VM* vm, uint8_t reg, uint32_t address, uint32_t size) {
-  if (VM_MEMORYSIZE - size > address) {
+  if (VM_MEMORYSIZE - size < address) {
     vm->exit_code = ILLEGAL_MEMORY_ACCESS;
     vm->running = false;
     return;
