@@ -61,15 +61,13 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Reason: %s\n", vm_err(flash_result));
   }
 
-  vm_cycle(vm);
-  vm_cycle(vm);
-  vm_cycle(vm);
-  vm_cycle(vm);
+  for (int i = 0; i < 15; i++) {
+    vm_cycle(vm);
+  }
 
-  printf("%08llx\n", vm->regs[0]);
-  printf("%08llx\n", vm->regs[1]);
-  printf("%08llx\n", vm->regs[2]);
-  printf("%08llx\n", vm->regs[3]);
+  for (int i = 0; i < 10; i++) {
+    printf("reg%d: %08llu\n", i, vm->regs[i]);
+  }
 
   vm_clean(vm);
   exe_clean(exe);

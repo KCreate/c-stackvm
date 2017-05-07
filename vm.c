@@ -370,10 +370,51 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
     case op_mov:        vm_op_mov(vm, ip); break;
     case op_loadi:      vm_op_loadi(vm, ip); break;
     case op_rst:        vm_op_rst(vm, ip); break;
+    case op_add:
+    case op_sub:
+    case op_mul:
+    case op_div:
+    case op_idiv:
+    case op_rem:
+    case op_irem: {
+      uint8_t target = vm->memory[ip + 1];
+      uint8_t source = vm->memory[ip + 2];
+      uint64_t result;
+
+      switch (instruction) {
+        case op_add:
+          result = REG(target) + REG(source);
+          break;
+        case op_sub:
+          result = REG(target) - REG(source);
+          break;
+        case op_mul:
+          result = REG(target) * REG(source);
+          break;
+        case op_div:
+          result = REG(target) / REG(source);
+          break;
+        case op_idiv:
+          result = (int64_t)REG(target) / (int64_t)REG(source);
+          break;
+        case op_rem:
+          result = REG(target) % REG(source);
+          break;
+        case op_irem:
+          result = (int64_t)REG(target) % (int64_t)REG(source);
+          break;
+        default:
+          result = 0; // can't happen
+          break;
+      }
+
+      vm_write_reg(vm, target, result);
+      break;
+    }
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
-      return;
+      break;
   }
 }
 

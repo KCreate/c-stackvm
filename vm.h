@@ -176,4 +176,7 @@ uint64_t vm_read_reg(VM* vm, uint8_t reg);
 void vm_move_mem_to_reg(VM* vm, uint8_t reg, uint32_t address, uint32_t size);
 bool vm_legal_address(uint32_t address);
 
+// Support macros
+#define REG(X) vm_read_reg(vm, X)
+
 #endif
