@@ -28,10 +28,10 @@
 
 // Registers
 #define VM_REGCOUNT     64
-#define VM_REGIP        60 & VM_REGDWORD
-#define VM_REGSP        61 & VM_REGDWORD
-#define VM_REGFP        62 & VM_REGDWORD
-#define VM_REGFLAGS     63 & VM_REGBYTE
+#define VM_REGIP        60 | VM_REGDWORD
+#define VM_REGSP        61 | VM_REGDWORD
+#define VM_REGFP        62 | VM_REGDWORD
+#define VM_REGFLAGS     63 | VM_REGBYTE
 
 // Opcodes
 typedef enum opcode {
