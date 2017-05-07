@@ -44,8 +44,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  printf("Creating vm with executable at %p\n", exe);
-
   exe_print_info(exe);
 
   VM* vm;

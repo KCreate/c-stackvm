@@ -105,7 +105,6 @@ bool vm_cycle(VM* vm) {
   opcode instruction = vm->memory[ip];
 
   uint64_t instruction_length = vm_instruction_length(vm, instruction);
-  printf("Instruction length of %d is %llu\n", instruction, instruction_length);
 
   // Check if there is enough memory for the instruction
   if (!vm_legal_address(ip + instruction_length)) {
