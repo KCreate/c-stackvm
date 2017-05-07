@@ -187,7 +187,8 @@ uint32_t vm_reg_size(uint8_t reg) {
 }
 
 /*
- * Write a block of memory onto the stack
+ * Writes a block of memory from the machine's own memory onto the stack
+ * Address and size argument index into the machine's memory
  * */
 void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
   uint32_t sp = vm_read_reg(vm, VM_REGSP);
@@ -204,21 +205,39 @@ void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
 }
 
 /*
- * Pop some bytes off the stack and return a pointer
- * to the bytes which were just popped off
+ * Write an arbitrary block of memory onto the stack
+ * Address and size arguments index into global address space
  * */
-uint32_t vm_stack_pop(VM* vm, uint32_t size) {
+void vm_stack_write_block(VM* vm, void* block, size_t size) {
   uint32_t sp = vm_read_reg(vm, VM_REGSP);
 
   // Check for a stack underflow
-  if (sp >= VM_MEMORYSIZE || sp > size) {
+  if (sp < size || !vm_legal_address(sp + size - 1)) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return;
+  }
+
+  memcpy(vm->memory + sp - size, block, size);
+  vm_write_reg(vm, VM_REGSP, sp - size);
+}
+
+/*
+ * Pop some bytes off the stack and return a pointer
+ * to the bytes which were just popped off
+ * */
+void* vm_stack_pop(VM* vm, uint32_t size) {
+  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+
+  // Check for a stack underflow
+  if (sp >= VM_MEMORYSIZE || sp < size) {
     vm->exit_code = ILLEGAL_MEMORY_ACCESS;
     vm->running = false;
     return 0;
   }
 
   vm_write_reg(vm, VM_REGSP, sp + size);
-  return sp;
+  return vm->memory + sp;
 }
 
 /*
@@ -292,6 +311,53 @@ uint64_t vm_read_reg(VM* vm, uint8_t reg) {
  * */
 bool vm_legal_address(uint32_t address) {
   return address < VM_MEMORYSIZE;
+}
+
+/*
+ * Execute a rpush instruction
+ * */
+void vm_op_rpush(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  uint32_t size = vm_reg_size(reg);
+  void* ptr = vm->regs + (reg & VM_CODEMASK);
+  vm_stack_write_block(vm, ptr, size);
+}
+
+/*
+ * Execute a rpop instruction
+ * */
+void vm_op_rpop(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  uint32_t size = vm_reg_size(reg);
+  uint8_t* data = vm_stack_pop(vm, size);
+  uint32_t address = data - vm->memory;
+  vm_move_mem_to_reg(vm, reg, address, size);
+}
+
+/*
+ * Execute a mov instruction
+ * */
+void vm_op_mov(VM* vm, uint32_t ip) {
+  uint8_t target = vm->memory[ip + 1];
+  uint8_t source = vm->memory[ip + 2];
+  uint64_t value = vm_read_reg(vm, source);
+  vm_write_reg(vm, target, value);
+}
+
+/*
+ * Execute a loadi instruction
+ * */
+void vm_op_loadi(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  vm_move_mem_to_reg(vm, reg, ip + 2, vm_reg_size(reg));
+}
+
+/*
+ * Execute a rst instruction
+ * */
+void vm_op_rst(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  vm_write_reg(vm, reg, 0);
 }
 
 /*
