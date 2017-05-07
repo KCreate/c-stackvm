@@ -267,16 +267,16 @@ void vm_move_mem_to_reg(VM* vm, uint8_t reg, uint32_t address, uint32_t size) {
 
   switch (size) {
     case 1:
-      vm_write_reg(vm, reg, (uint8_t) vm->memory + address);
+      vm_write_reg(vm, reg, *(uint8_t *)(vm->memory + address));
       break;
     case 2:
-      vm_write_reg(vm, reg, (uint16_t) vm->memory + address);
+      vm_write_reg(vm, reg, *(uint16_t *)(vm->memory + address));
       break;
     case 4:
-      vm_write_reg(vm, reg, (uint32_t) vm->memory + address);
+      vm_write_reg(vm, reg, *(uint32_t *)(vm->memory + address));
       break;
     default:
-      vm_write_reg(vm, reg, (uint64_t) vm->memory + address);
+      vm_write_reg(vm, reg, *(uint64_t *)(vm->memory + address));
       break;
   }
 }
