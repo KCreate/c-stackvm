@@ -50,9 +50,9 @@ VMError vm_flash(VM* vm, Executable* exe) {
   vm->exit_code = 0;
 
   // Initialize special purpose registers
-  vm->regs[VM_REGSP] = VM_STACK_START;
-  vm->regs[VM_REGFP] = VM_MEMORYSIZE;
-  vm->regs[VM_REGIP] = exe->header->entry_addr;
+  vm_write_reg(vm, VM_REGSP, VM_STACK_START);
+  vm_write_reg(vm, VM_REGFP, VM_MEMORYSIZE);
+  vm_write_reg(vm, VM_REGIP, exe->header->entry_addr);
 
   // If the executables load table is empty
   // we assume that there is an entry which loads
@@ -93,9 +93,52 @@ VMError vm_flash(VM* vm, Executable* exe) {
  * Returns false if no cycle could be performed
  * */
 bool vm_cycle(VM* vm) {
-  uint32_t ip = vm->regs[VM_REGIP];
+  uint32_t ip = vm_read_reg(vm, VM_REGIP);
+
+  // Check if ip is out-of-bounds
+  if (!vm_legal_address(ip)) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return false;
+  }
+
+  opcode instruction = vm->memory[ip];
+
+  uint64_t instruction_length = vm_instruction_length(vm, instruction);
+  printf("Instruction length of %d is %llu\n", instruction, instruction_length);
+
+  // Check if there is enough memory for the instruction
+  if (!vm_legal_address(ip + instruction_length)) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return false;
+  }
+
+  vm_execute(vm, instruction, ip);
+
+  // If the instruction we just executed didn't change the instruction pointer
+  // we increment it to the next instruction
+  //
+  // Since our instruction format isn't of fixed length, we have to calculate
+  // the offset to the next instruction. For most instructions this is a simple
+  // table-lookup, only loadi and push require a custom calculation
+  if (ip == vm_read_reg(vm, VM_REGIP)) {
+    vm_write_reg(vm, VM_REGIP, ip + instruction_length);
+  }
 
   return true;
+}
+
+/*
+ * Execute an instruction
+ * */
+void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
+  switch (instruction) {
+    default:
+      vm->exit_code = INVALID_INSTRUCTION;
+      vm->running = false;
+      return;
+  }
 }
 
 /*
@@ -104,10 +147,28 @@ bool vm_cycle(VM* vm) {
  * */
 uint64_t vm_instruction_length(VM* vm, opcode instruction) {
   switch (instruction) {
-    case op_loadi:
-    case op_push:
-      fprintf(stderr, "length decoding for loadi and push is not implemented yet");
-      exit(1);
+    case op_loadi: {
+      uint32_t ip = vm_read_reg(vm, VM_REGIP);
+      uint8_t reg = *(uint8_t *)(vm->memory + ip + 1);
+
+      //     +- Opcode
+      //     |   +- Register code
+      //     |   |   +- Immediate value
+      //     |   |   |
+      //     v   v   v
+      return 1 + 1 + vm_reg_size(reg);
+    }
+    case op_push: {
+      uint32_t ip = vm_read_reg(vm, VM_REGIP);
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+
+      //     +- Opcode
+      //     |   +- Size specifier
+      //     |   |   +- Immediate value
+      //     |   |   |
+      //     v   v   v
+      return 1 + 4 + size;
+    }
     default:
 
       // Check if this is a valid instruction
@@ -117,6 +178,125 @@ uint64_t vm_instruction_length(VM* vm, opcode instruction) {
       }
 
       return opcode_length_lookup_table[instruction];
+  }
+}
+
+/*
+ * Return the size of a given register
+ * */
+uint32_t vm_reg_size(uint8_t reg) {
+  switch (reg & VM_MODEMASK) {
+    case VM_REGBYTE:
+      return 1;
+    case VM_REGWORD:
+      return 2;
+    case VM_REGDWORD:
+      return 4;
+    case VM_REGQWORD:
+      return 8;
+    default:
+      return 0; // Can't happen
+  }
+}
+
+/*
+ * Write a block of memory onto the stack
+ * */
+void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
+  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+
+  // Check for a stack underflow
+  if (sp < size || address + size - 1 >= VM_MEMORYSIZE) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return;
+  }
+
+  memcpy(vm->memory + sp - size, vm->memory + address, size);
+  vm_write_reg(vm, VM_REGSP, sp - size);
+}
+
+/*
+ * Pop some bytes off the stack and return a pointer
+ * to the bytes which were just popped off
+ * */
+uint32_t vm_stack_pop(VM* vm, uint32_t size) {
+  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+
+  // Check for a stack underflow
+  if (sp >= VM_MEMORYSIZE || sp > size) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return 0;
+  }
+
+  vm_write_reg(vm, VM_REGSP, sp + size);
+  return sp;
+}
+
+/*
+ * Write a value into a register
+ * */
+void vm_write_reg(VM* vm, uint8_t reg, uint64_t value) {
+  switch (vm_reg_size(reg)) {
+    case 1:
+      *((uint8_t *) (vm->regs + (reg & VM_CODEMASK))) = (uint8_t) value;
+      break;
+    case 2:
+      *((uint16_t *) (vm->regs + (reg & VM_CODEMASK))) = (uint16_t) value;
+      break;
+    case 4:
+      *((uint32_t *) (vm->regs + (reg & VM_CODEMASK))) = (uint32_t) value;
+      break;
+    case 8:
+      *((uint64_t *) (vm->regs + (reg & VM_CODEMASK))) = (uint64_t) value;
+      break;
+    default:
+      break; // can't happen
+  }
+}
+
+/*
+ * Moves a block of memory into a register
+ * */
+void vm_move_mem_to_reg(VM* vm, uint8_t reg, uint32_t address, uint32_t size) {
+  if (VM_MEMORYSIZE - size > address) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return;
+  }
+
+  switch (size) {
+    case 1:
+      vm_write_reg(vm, reg, (uint8_t) vm->memory + address);
+      break;
+    case 2:
+      vm_write_reg(vm, reg, (uint16_t) vm->memory + address);
+      break;
+    case 4:
+      vm_write_reg(vm, reg, (uint32_t) vm->memory + address);
+      break;
+    default:
+      vm_write_reg(vm, reg, (uint64_t) vm->memory + address);
+      break;
+  }
+}
+
+/*
+ * Read the value of a register
+ * */
+uint64_t vm_read_reg(VM* vm, uint8_t reg) {
+  switch (vm_reg_size(reg)) {
+    case 1:
+      return *(uint64_t *)(uint8_t *) (vm->regs + (reg & VM_CODEMASK));
+    case 2:
+      return *(uint64_t *)(uint16_t *) (vm->regs + (reg & VM_CODEMASK));
+    case 4:
+      return *(uint64_t *)(uint32_t *) (vm->regs + (reg & VM_CODEMASK));
+    case 8:
+      return vm->regs[reg & VM_CODEMASK];
+    default:
+      return 0; // can't happen
   }
 }
 

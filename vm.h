@@ -15,21 +15,23 @@
 #define INVALID_EXECUTABLE    0x06
 #define ALLOCATION_FAILURE    0x07
 
-// Registers
-#define VM_REGCOUNT     64
-#define VM_REGIP        60
-#define VM_REGSP        61
-#define VM_REGFP        62
-#define VM_REGFLAGS     63
-
 // Bitmasks for the flags register
 #define VM_FLAG_ZERO    0
 
 // Mode masks for register codes
+#define VM_MODEMASK     192
+#define VM_CODEMASK     63
 #define VM_REGBYTE      192
 #define VM_REGWORD      128
 #define VM_REGDWORD     64
 #define VM_REGQWORD     0
+
+// Registers
+#define VM_REGCOUNT     64
+#define VM_REGIP        60 & VM_REGDWORD
+#define VM_REGSP        61 & VM_REGDWORD
+#define VM_REGFP        62 & VM_REGDWORD
+#define VM_REGFLAGS     63 & VM_REGBYTE
 
 // Opcodes
 typedef enum opcode {
@@ -162,8 +164,15 @@ VMError vm_create(VM** vm);
 void vm_clean(VM* vm);
 VMError vm_flash(VM* vm, Executable* exe);
 bool vm_cycle(VM* vm);
+void vm_execute(VM* vm, opcode instruction, uint32_t ip);
 uint64_t vm_instruction_length(VM* vm, opcode instruction);
 char* vm_err(VMError errcode);
+uint32_t vm_reg_size(uint8_t reg);
+void vm_stack_write(VM* vm, uint32_t address, uint32_t size);
+uint32_t vm_stack_pop(VM* vm, uint32_t size);
+void vm_write_reg(VM* vm, uint8_t reg, uint64_t value);
+uint64_t vm_read_reg(VM* vm, uint8_t reg);
+void vm_move_mem_to_reg(VM* vm, uint8_t reg, uint32_t address, uint32_t size);
 bool vm_legal_address(uint32_t address);
 
 #endif
