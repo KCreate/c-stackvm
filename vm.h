@@ -16,7 +16,7 @@
 #define ALLOCATION_FAILURE    0x07
 
 // Bitmasks for the flags register
-#define VM_FLAG_ZERO    0
+#define VM_FLAG_ZERO    1
 
 // Mode masks for register codes
 #define VM_MODEMASK     192

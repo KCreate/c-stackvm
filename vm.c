@@ -329,6 +329,13 @@ bool vm_legal_address(uint32_t address) {
 }
 
 /*
+ * Return true if the zero bit of the flags register is set
+ * */
+bool vm_zero_bit_set(VM* vm) {
+  return (REG(VM_REGFLAGS) & VM_FLAG_ZERO) == 1;
+}
+
+/*
  * Execute a rpush instruction
  * */
 void vm_op_rpush(VM* vm, uint32_t ip) {
@@ -382,6 +389,27 @@ void vm_op_push(VM* vm, uint32_t ip) {
   uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
   void* data = (void* )(vm->memory + ip + 5);
   vm_stack_write_block(vm, data, size);
+}
+
+/*
+ * Execute a jz instruction
+ * */
+void vm_op_jz(VM* vm, uint32_t ip) {
+  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+  if (vm_zero_bit_set(vm)) {
+    vm_write_reg(vm, VM_REGIP, address);
+  }
+}
+
+/*
+ * Execute a jzr instruction
+ * */
+void vm_op_jzr(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  uint32_t address = REG(reg);
+  if (vm_zero_bit_set(vm)) {
+    vm_write_reg(vm, VM_REGIP, address);
+  }
 }
 
 /*
@@ -506,6 +534,8 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
     case op_push:       vm_op_push(vm, ip); break;
+    case op_jz:         vm_op_jz(vm, ip); break;
+    case op_jzr:        vm_op_jzr(vm, ip); break;
     case op_jmp:        vm_op_jmp(vm, ip); break;
     case op_jmpr:       vm_op_jmpr(vm, ip); break;
     case op_call:       vm_op_call(vm, ip); break;
