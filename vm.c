@@ -373,6 +373,32 @@ void vm_op_rst(VM* vm, uint32_t ip) {
 }
 
 /*
+ * Execute a push instruction
+ * */
+void vm_op_push(VM* vm, uint32_t ip) {
+  uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+  void* data = (void* )(vm->memory + ip + 5);
+  vm_stack_write_block(vm, data, size);
+}
+
+/*
+ * Execute a jmp instruction
+ * */
+void vm_op_jmp(VM* vm, uint32_t ip) {
+  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+  vm_write_reg(vm, VM_REGIP, address);
+}
+
+/*
+ * Execute a jmpr instruction
+ * */
+void vm_op_jmpr(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  uint32_t address = REG(reg);
+  vm_write_reg(vm, VM_REGIP, address);
+}
+
+/*
  * Execute a call instruction
  * */
 void vm_op_call(VM* vm, uint32_t ip) {
@@ -382,11 +408,47 @@ void vm_op_call(VM* vm, uint32_t ip) {
 }
 
 /*
- * Execute a jmp instruction
+ * Execute a callr instructions
  * */
-void vm_op_jmp(VM* vm, uint32_t ip) {
-  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+void vm_op_callr(VM* vm, uint32_t ip) {
+  uint8_t reg = vm->memory[ip + 1];
+  uint32_t address = REG(reg);
+  vm_push_stack_frame(vm, ip + 2);
   vm_write_reg(vm, VM_REGIP, address);
+}
+
+/*
+ * Execute a ret instruction
+ * */
+void vm_op_ret(VM* vm, uint32_t ip) {
+  uint32_t stack_frame_baseadr = REG(VM_REGFP);
+
+  // Check out-of-bounds
+  if (!vm_legal_address(stack_frame_baseadr + 12)) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return;
+  }
+
+  // Read the current stackframe
+  uint32_t fp = *(uint32_t *)(vm->memory + stack_frame_baseadr);
+  uint32_t ra = *(uint32_t *)(vm->memory + stack_frame_baseadr + 4);
+  uint32_t ac = *(uint32_t *)(vm->memory + stack_frame_baseadr + 8);
+  uint32_t sp = stack_frame_baseadr + 12 + ac;
+
+  printf("stack_frame_baseadr: %08x\n", stack_frame_baseadr);
+  printf("new stack pointer: %08x\n", sp);
+
+  // Check if the new stack pointer is out of bounds
+  if (!vm_legal_address(sp)) {
+    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+    vm->running = false;
+    return;
+  }
+
+  vm_write_reg(vm, VM_REGSP, sp);
+  vm_write_reg(vm, VM_REGFP, fp);
+  vm_write_reg(vm, VM_REGIP, ra);
 }
 
 /*
@@ -440,8 +502,12 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target, result);
       break;
     }
-    case op_call:       vm_op_call(vm, ip); break;
+    case op_push:       vm_op_push(vm, ip); break;
     case op_jmp:        vm_op_jmp(vm, ip); break;
+    case op_jmpr:       vm_op_jmpr(vm, ip); break;
+    case op_call:       vm_op_call(vm, ip); break;
+    case op_callr:      vm_op_callr(vm, ip); break;
+    case op_ret:        vm_op_ret(vm, ip); break;
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
