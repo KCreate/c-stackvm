@@ -383,6 +383,35 @@ void vm_op_rst(VM* vm, uint32_t ip) {
 }
 
 /*
+ * Execute a inttofp instruction
+ * */
+void vm_op_inttofp(VM* vm, uint32_t ip) {
+  uint8_t source = vm->memory[ip + 1];
+  double value = (double)REG(source);
+  vm_write_reg(vm, source, *(uint64_t *)(&value));
+}
+
+/*
+ * Execute a inttofp instruction
+ * */
+void vm_op_sinttofp(VM* vm, uint32_t ip) {
+  uint8_t source = vm->memory[ip + 1];
+  double value = (double)(int64_t)REG(source);
+  vm_write_reg(vm, source, *(uint64_t *)(&value));
+}
+
+/*
+ * Execute a inttofp instruction
+ * */
+void vm_op_fptoint(VM* vm, uint32_t ip) {
+  uint8_t source = vm->memory[ip + 1];
+  uint64_t reg_content = REG(source);
+  double value = *(double *)(&reg_content);
+  printf("converting %f inside %d\n", value, source);
+  vm_write_reg(vm, source, (int64_t)value);
+}
+
+/*
  * Execute a push instruction
  * */
 void vm_op_push(VM* vm, uint32_t ip) {
@@ -533,6 +562,9 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target, result);
       break;
     }
+    case op_inttofp:    vm_op_inttofp(vm, ip); break;
+    case op_sinttofp:   vm_op_sinttofp(vm, ip); break;
+    case op_fptoint:    vm_op_fptoint(vm, ip); break;
     case op_push:       vm_op_push(vm, ip); break;
     case op_jz:         vm_op_jz(vm, ip); break;
     case op_jzr:        vm_op_jzr(vm, ip); break;
