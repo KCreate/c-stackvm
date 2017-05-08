@@ -5,6 +5,9 @@
 #include "vm.h"
 #include "exe.h"
 
+// Support macros
+#define REG(X) vm_read_reg(vm, X)
+
 /*
  * Allocate the memory for VM struct
  * Returns false if allocation failed
