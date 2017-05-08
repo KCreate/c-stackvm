@@ -307,6 +307,18 @@ uint64_t vm_read_reg(VM* vm, uint8_t reg) {
 }
 
 /*
+ * Pushes a stack frame onto the stack and updates the required
+ * special purpose registers
+ * */
+void vm_push_stack_frame(VM* vm, uint32_t return_address) {
+  uint32_t fp = REG(VM_REGFP);
+  uint32_t stack_frame_baseadr = REG(VM_REGSP) - 8;
+  vm_stack_write_block(vm, &return_address, 4);
+  vm_stack_write_block(vm, &fp, 4);
+  vm_write_reg(vm, VM_REGFP, stack_frame_baseadr);
+}
+
+/*
  * Returns true if address is legal
  * */
 bool vm_legal_address(uint32_t address) {
@@ -361,6 +373,23 @@ void vm_op_rst(VM* vm, uint32_t ip) {
 }
 
 /*
+ * Execute a call instruction
+ * */
+void vm_op_call(VM* vm, uint32_t ip) {
+  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+  vm_push_stack_frame(vm, ip + 5);
+  vm_write_reg(vm, VM_REGIP, address);
+}
+
+/*
+ * Execute a jmp instruction
+ * */
+void vm_op_jmp(VM* vm, uint32_t ip) {
+  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+  vm_write_reg(vm, VM_REGIP, address);
+}
+
+/*
  * Execute an instruction
  * */
 void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
@@ -411,6 +440,8 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target, result);
       break;
     }
+    case op_call:       vm_op_call(vm, ip); break;
+    case op_jmp:        vm_op_jmp(vm, ip); break;
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
