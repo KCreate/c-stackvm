@@ -93,7 +93,7 @@ VMError vm_flash(VM* vm, Executable* exe) {
  * Returns false if no cycle could be performed
  * */
 bool vm_cycle(VM* vm) {
-  uint32_t ip = vm_read_reg(vm, VM_REGIP);
+  uint32_t ip = REG(VM_REGIP);
 
   // Check if ip is out-of-bounds
   if (!vm_legal_address(ip)) {
@@ -121,7 +121,7 @@ bool vm_cycle(VM* vm) {
   // Since our instruction format isn't of fixed length, we have to calculate
   // the offset to the next instruction. For most instructions this is a simple
   // table-lookup, only loadi and push require a custom calculation
-  if (ip == vm_read_reg(vm, VM_REGIP)) {
+  if (ip == REG(VM_REGIP)) {
     vm_write_reg(vm, VM_REGIP, ip + instruction_length);
   }
 
@@ -135,7 +135,7 @@ bool vm_cycle(VM* vm) {
 uint64_t vm_instruction_length(VM* vm, opcode instruction) {
   switch (instruction) {
     case op_loadi: {
-      uint32_t ip = vm_read_reg(vm, VM_REGIP);
+      uint32_t ip = REG(VM_REGIP);
       uint8_t reg = *(uint8_t *)(vm->memory + ip + 1);
 
       //     +- Opcode
@@ -146,7 +146,7 @@ uint64_t vm_instruction_length(VM* vm, opcode instruction) {
       return 1 + 1 + vm_reg_size(reg);
     }
     case op_push: {
-      uint32_t ip = vm_read_reg(vm, VM_REGIP);
+      uint32_t ip = REG(VM_REGIP);
       uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
 
       //     +- Opcode
@@ -191,7 +191,7 @@ uint32_t vm_reg_size(uint8_t reg) {
  * Address and size argument index into the machine's memory
  * */
 void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
-  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+  uint32_t sp = REG(VM_REGSP);
 
   // Check for a stack underflow
   if (sp < size || address + size - 1 >= VM_MEMORYSIZE) {
@@ -209,7 +209,7 @@ void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
  * Address and size arguments index into global address space
  * */
 void vm_stack_write_block(VM* vm, void* block, size_t size) {
-  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+  uint32_t sp = REG(VM_REGSP);
 
   // Check for a stack underflow
   if (sp < size || !vm_legal_address(sp + size - 1)) {
@@ -227,7 +227,7 @@ void vm_stack_write_block(VM* vm, void* block, size_t size) {
  * to the bytes which were just popped off
  * */
 void* vm_stack_pop(VM* vm, uint32_t size) {
-  uint32_t sp = vm_read_reg(vm, VM_REGSP);
+  uint32_t sp = REG(VM_REGSP);
 
   // Check for a stack underflow
   if (sp >= VM_MEMORYSIZE || sp < size) {
@@ -352,7 +352,7 @@ void vm_op_rpop(VM* vm, uint32_t ip) {
 void vm_op_mov(VM* vm, uint32_t ip) {
   uint8_t target = vm->memory[ip + 1];
   uint8_t source = vm->memory[ip + 2];
-  uint64_t value = vm_read_reg(vm, source);
+  uint64_t value = REG(source);
   vm_write_reg(vm, target, value);
 }
 
