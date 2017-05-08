@@ -511,6 +511,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
     case op_call:       vm_op_call(vm, ip); break;
     case op_callr:      vm_op_callr(vm, ip); break;
     case op_ret:        vm_op_ret(vm, ip); break;
+    case op_nop:        break;
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
