@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "vm.h"
 #include "exe.h"
 
 // Support macros
 #define REG(X) vm_read_reg(vm, X)
+#define REGF(X) *(double *)(&(vm_read_reg(vm, X)))
 
 /*
  * Allocate the memory for VM struct
@@ -336,191 +338,52 @@ bool vm_zero_bit_set(VM* vm) {
 }
 
 /*
- * Execute a rpush instruction
- * */
-void vm_op_rpush(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  uint32_t size = vm_reg_size(reg);
-  void* ptr = vm->regs + (reg & VM_CODEMASK);
-  vm_stack_write_block(vm, ptr, size);
-}
-
-/*
- * Execute a rpop instruction
- * */
-void vm_op_rpop(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  uint32_t size = vm_reg_size(reg);
-  uint8_t* data = vm_stack_pop(vm, size);
-  uint32_t address = data - vm->memory;
-  vm_move_mem_to_reg(vm, reg, address, size);
-}
-
-/*
- * Execute a mov instruction
- * */
-void vm_op_mov(VM* vm, uint32_t ip) {
-  uint8_t target = vm->memory[ip + 1];
-  uint8_t source = vm->memory[ip + 2];
-  uint64_t value = REG(source);
-  vm_write_reg(vm, target, value);
-}
-
-/*
- * Execute a loadi instruction
- * */
-void vm_op_loadi(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  vm_move_mem_to_reg(vm, reg, ip + 2, vm_reg_size(reg));
-}
-
-/*
- * Execute a rst instruction
- * */
-void vm_op_rst(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  vm_write_reg(vm, reg, 0);
-}
-
-/*
- * Execute a inttofp instruction
- * */
-void vm_op_inttofp(VM* vm, uint32_t ip) {
-  uint8_t source = vm->memory[ip + 1];
-  double value = (double)REG(source);
-  vm_write_reg(vm, source, *(uint64_t *)(&value));
-}
-
-/*
- * Execute a inttofp instruction
- * */
-void vm_op_sinttofp(VM* vm, uint32_t ip) {
-  uint8_t source = vm->memory[ip + 1];
-  double value = (double)(int64_t)REG(source);
-  vm_write_reg(vm, source, *(uint64_t *)(&value));
-}
-
-/*
- * Execute a inttofp instruction
- * */
-void vm_op_fptoint(VM* vm, uint32_t ip) {
-  uint8_t source = vm->memory[ip + 1];
-  uint64_t reg_content = REG(source);
-  double value = *(double *)(&reg_content);
-  printf("converting %f inside %d\n", value, source);
-  vm_write_reg(vm, source, (int64_t)value);
-}
-
-/*
- * Execute a push instruction
- * */
-void vm_op_push(VM* vm, uint32_t ip) {
-  uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
-  void* data = (void* )(vm->memory + ip + 5);
-  vm_stack_write_block(vm, data, size);
-}
-
-/*
- * Execute a jz instruction
- * */
-void vm_op_jz(VM* vm, uint32_t ip) {
-  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
-  if (vm_zero_bit_set(vm)) {
-    vm_write_reg(vm, VM_REGIP, address);
-  }
-}
-
-/*
- * Execute a jzr instruction
- * */
-void vm_op_jzr(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  uint32_t address = REG(reg);
-  if (vm_zero_bit_set(vm)) {
-    vm_write_reg(vm, VM_REGIP, address);
-  }
-}
-
-/*
- * Execute a jmp instruction
- * */
-void vm_op_jmp(VM* vm, uint32_t ip) {
-  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
-  vm_write_reg(vm, VM_REGIP, address);
-}
-
-/*
- * Execute a jmpr instruction
- * */
-void vm_op_jmpr(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  uint32_t address = REG(reg);
-  vm_write_reg(vm, VM_REGIP, address);
-}
-
-/*
- * Execute a call instruction
- * */
-void vm_op_call(VM* vm, uint32_t ip) {
-  uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
-  vm_push_stack_frame(vm, ip + 5);
-  vm_write_reg(vm, VM_REGIP, address);
-}
-
-/*
- * Execute a callr instructions
- * */
-void vm_op_callr(VM* vm, uint32_t ip) {
-  uint8_t reg = vm->memory[ip + 1];
-  uint32_t address = REG(reg);
-  vm_push_stack_frame(vm, ip + 2);
-  vm_write_reg(vm, VM_REGIP, address);
-}
-
-/*
- * Execute a ret instruction
- * */
-void vm_op_ret(VM* vm, uint32_t ip) {
-  uint32_t stack_frame_baseadr = REG(VM_REGFP);
-
-  // Check out-of-bounds
-  if (!vm_legal_address(stack_frame_baseadr + 12)) {
-    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
-    vm->running = false;
-    return;
-  }
-
-  // Read the current stackframe
-  uint32_t fp = *(uint32_t *)(vm->memory + stack_frame_baseadr);
-  uint32_t ra = *(uint32_t *)(vm->memory + stack_frame_baseadr + 4);
-  uint32_t ac = *(uint32_t *)(vm->memory + stack_frame_baseadr + 8);
-  uint32_t sp = stack_frame_baseadr + 12 + ac;
-
-  printf("stack_frame_baseadr: %08x\n", stack_frame_baseadr);
-  printf("new stack pointer: %08x\n", sp);
-
-  // Check if the new stack pointer is out of bounds
-  if (!vm_legal_address(sp)) {
-    vm->exit_code = ILLEGAL_MEMORY_ACCESS;
-    vm->running = false;
-    return;
-  }
-
-  vm_write_reg(vm, VM_REGSP, sp);
-  vm_write_reg(vm, VM_REGFP, fp);
-  vm_write_reg(vm, VM_REGIP, ra);
-}
-
-/*
  * Execute an instruction
  * */
 void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
   switch (instruction) {
-    case op_rpush:      vm_op_rpush(vm, ip); break;
-    case op_rpop:       vm_op_rpop(vm, ip); break;
-    case op_mov:        vm_op_mov(vm, ip); break;
-    case op_loadi:      vm_op_loadi(vm, ip); break;
-    case op_rst:        vm_op_rst(vm, ip); break;
+    case op_rpush: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint32_t size = vm_reg_size(reg);
+      void* ptr = vm->regs + (reg & VM_CODEMASK);
+      vm_stack_write_block(vm, ptr, size);
+
+      break;
+    }
+    case op_rpop: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint32_t size = vm_reg_size(reg);
+      uint8_t* data = vm_stack_pop(vm, size);
+      uint32_t address = data - vm->memory;
+      vm_move_mem_to_reg(vm, reg, address, size);
+
+      break;
+    }
+    case op_mov: {
+
+      uint8_t target = vm->memory[ip + 1];
+      uint8_t source = vm->memory[ip + 2];
+      uint64_t value = REG(source);
+      vm_write_reg(vm, target, value);
+
+      break;
+    }
+    case op_loadi: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      vm_move_mem_to_reg(vm, reg, ip + 2, vm_reg_size(reg));
+
+      break;
+    }
+    case op_rst: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      vm_write_reg(vm, reg, 0);
+
+      break;
+    }
     case op_add:
     case op_sub:
     case op_mul:
@@ -562,17 +425,232 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target, result);
       break;
     }
-    case op_inttofp:    vm_op_inttofp(vm, ip); break;
-    case op_sinttofp:   vm_op_sinttofp(vm, ip); break;
-    case op_fptoint:    vm_op_fptoint(vm, ip); break;
-    case op_push:       vm_op_push(vm, ip); break;
-    case op_jz:         vm_op_jz(vm, ip); break;
-    case op_jzr:        vm_op_jzr(vm, ip); break;
-    case op_jmp:        vm_op_jmp(vm, ip); break;
-    case op_jmpr:       vm_op_jmpr(vm, ip); break;
-    case op_call:       vm_op_call(vm, ip); break;
-    case op_callr:      vm_op_callr(vm, ip); break;
-    case op_ret:        vm_op_ret(vm, ip); break;
+    case op_fadd:
+    case op_fsub:
+    case op_fmul:
+    case op_fdiv:
+    case op_frem:
+    case op_fexp: {
+      uint8_t target_reg = vm->memory[ip + 1];
+      uint8_t source_reg = vm->memory[ip + 2];
+
+      uint64_t target_uncasted_value = REG(target_reg);
+      uint64_t source_uncasted_value = REG(source_reg);
+
+      double target = *(double *)(&target_uncasted_value);
+      double source = *(double *)(&source_uncasted_value);
+
+      double result;
+
+      switch (instruction) {
+        case op_fadd:
+          result = target + source;
+          break;
+        case op_fsub:
+          result = target - source;
+          break;
+        case op_fmul:
+          result = target * source;
+          break;
+        case op_fdiv:
+          result = target / source;
+          break;
+        case op_frem:
+          result = fmod(target, source);
+          break;
+        case op_fexp:
+          result = pow(target, source);
+          break;
+        default:
+          result = 0; // can't happen
+          break;
+      }
+
+      vm_write_reg(vm, target_reg, result);
+      break;
+    }
+    case op_inttofp: {
+
+      uint8_t source = vm->memory[ip + 1];
+      double value = (double)REG(source);
+      vm_write_reg(vm, source, *(uint64_t *)(&value));
+
+      break;
+    }
+    case op_sinttofp: {
+
+      uint8_t source = vm->memory[ip + 1];
+      double value = (double)(int64_t)REG(source);
+      vm_write_reg(vm, source, *(uint64_t *)(&value));
+
+      break;
+    }
+    case op_fptoint: {
+
+      uint8_t source = vm->memory[ip + 1];
+      uint64_t reg_content = REG(source);
+      double value = *(double *)(&reg_content);
+      printf("converting %f inside %d\n", value, source);
+      vm_write_reg(vm, source, (int64_t)value);
+
+      break;
+    }
+    case op_load: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      int32_t offset = *(int32_t *)(vm->memory + ip + 2);
+      uint32_t fp = REG(VM_REGFP);
+      vm_move_mem_to_reg(vm, reg, fp + offset, vm_reg_size(reg));
+
+      break;
+    }
+    case op_loadr: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint8_t offset_reg = *(uint8_t *)(vm->memory + ip + 2);
+      int32_t offset = (int32_t)REG(offset_reg);
+      uint32_t fp = REG(VM_REGFP);
+      vm_move_mem_to_reg(vm, reg, fp + offset, vm_reg_size(reg));
+
+      break;
+    }
+    case op_loads: {
+
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+      int32_t offset = *(int32_t *)(vm->memory + ip + 5);
+      uint32_t fp = REG(VM_REGFP);
+      vm_stack_write_block(vm, (vm->memory + fp + offset), size);
+
+      break;
+    }
+    case op_loadsr: {
+
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+      uint8_t offset_reg = *(uint8_t *)(vm->memory + ip + 2);
+      int32_t offset = (int32_t)REG(offset_reg);
+      uint32_t fp = REG(VM_REGFP);
+      vm_stack_write_block(vm, (vm->memory + fp + offset), size);
+
+      break;
+    }
+    case op_store: {
+
+      int32_t offset = *(int32_t *)(vm->memory + ip + 1);
+      uint8_t reg = vm->memory[ip + 5];
+      uint32_t fp = REG(VM_REGFP);
+      uint64_t value = REG(reg);
+
+      switch (vm_reg_size(reg)) {
+        case 1:
+          *((uint8_t *) (vm->memory + fp + offset)) = value;
+          break;
+        case 2:
+          *((uint16_t *) (vm->memory + fp + offset)) = value;
+          break;
+        case 4:
+          *((uint32_t *) (vm->memory + fp + offset)) = value;
+          break;
+        case 8:
+          *((uint64_t *) (vm->memory + fp + offset)) = value;
+          break;
+        default:
+          break; // Can't happen
+      }
+
+      break;
+    }
+    case op_push: {
+
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+      void* data = (void* )(vm->memory + ip + 5);
+      vm_stack_write_block(vm, data, size);
+
+      break;
+    }
+    case op_jz: {
+
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+      if (vm_zero_bit_set(vm)) {
+        vm_write_reg(vm, VM_REGIP, address);
+      }
+
+      break;
+    }
+    case op_jzr: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint32_t address = REG(reg);
+      if (vm_zero_bit_set(vm)) {
+        vm_write_reg(vm, VM_REGIP, address);
+      }
+
+      break;
+    }
+    case op_jmp: {
+
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+      vm_write_reg(vm, VM_REGIP, address);
+
+      break;
+    }
+    case op_jmpr: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint32_t address = REG(reg);
+      vm_write_reg(vm, VM_REGIP, address);
+
+      break;
+    }
+    case op_call: {
+
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+      vm_push_stack_frame(vm, ip + 5);
+      vm_write_reg(vm, VM_REGIP, address);
+
+      break;
+    }
+    case op_callr: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint32_t address = REG(reg);
+      vm_push_stack_frame(vm, ip + 2);
+      vm_write_reg(vm, VM_REGIP, address);
+
+      break;
+    }
+    case op_ret: {
+
+      uint32_t stack_frame_baseadr = REG(VM_REGFP);
+
+      // Check out-of-bounds
+      if (!vm_legal_address(stack_frame_baseadr + 12)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      // Read the current stackframe
+      uint32_t fp = *(uint32_t *)(vm->memory + stack_frame_baseadr);
+      uint32_t ra = *(uint32_t *)(vm->memory + stack_frame_baseadr + 4);
+      uint32_t ac = *(uint32_t *)(vm->memory + stack_frame_baseadr + 8);
+      uint32_t sp = stack_frame_baseadr + 12 + ac;
+
+      printf("stack_frame_baseadr: %08x\n", stack_frame_baseadr);
+      printf("new stack pointer: %08x\n", sp);
+
+      // Check if the new stack pointer is out of bounds
+      if (!vm_legal_address(sp)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      vm_write_reg(vm, VM_REGSP, sp);
+      vm_write_reg(vm, VM_REGFP, fp);
+      vm_write_reg(vm, VM_REGIP, ra);
+
+      break;
+    }
     case op_nop:        break;
     default:
       vm->exit_code = INVALID_INSTRUCTION;
