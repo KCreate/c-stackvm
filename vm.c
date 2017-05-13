@@ -635,6 +635,22 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
 
+    case op_reads: {
+
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
+      uint8_t source = *(uint8_t *)(vm->memory + ip + 5);
+      uint32_t address = REG(source);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      vm_stack_write_block(vm, vm->memory + address, size);
+      break;
+    }
+
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
