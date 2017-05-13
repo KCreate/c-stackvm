@@ -700,6 +700,39 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
 
+    case op_writes: {
+
+      uint8_t target = vm->memory[ip + 1];
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 2);
+      uint32_t address = REG(target);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      void* data = vm_stack_pop(vm, size);
+      memcpy(vm->memory + address, data, size);
+      break;
+    }
+
+    case op_writecs: {
+
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 5);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      void* data = vm_stack_pop(vm, size);
+      memcpy(vm->memory + address, data, size);
+      break;
+    }
+
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
