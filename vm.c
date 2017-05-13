@@ -692,9 +692,6 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
         case VM_SYS_SLEEP: {
           double duration = *(double *)vm_stack_pop(vm, 8);
-
-          printf("sleeping for %f seconds\n", duration);
-
           usleep((unsigned int)(1000 * 1000 * duration));
           break;
         }

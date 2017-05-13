@@ -3,11 +3,9 @@ OPT=-O0
 CFLAGS=-g -fdata-sections -ffunction-sections $(OPT)
 VM_OBJS=obj/main.o obj/vm.o obj/exe.o
 
-VM_CYCLES=8
-
 assemble: vm test.asm
 	stackvm build test.asm -s -o test.bc
-	bin/vm test.bc $(VM_CYCLES)
+	bin/vm test.bc
 
 vm: $(VM_OBJS)
 	$(CC) $(CFLAGS) $(VM_OBJS) -dead_strip -o bin/vm

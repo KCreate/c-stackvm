@@ -44,8 +44,6 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  exe_print_info(exe);
-
   VM* vm;
 
   VMError create_result = vm_create(&vm);
@@ -59,24 +57,13 @@ int main(int argc, char** argv) {
   if (flash_result != vm_err_regular_exit) {
     fprintf(stderr, "Could not load executable\n");
     fprintf(stderr, "Reason: %s\n", vm_err(flash_result));
+    return 1;
   }
 
-  int repeat_count = atoi(argv[2]);
-  for (int i = 0; i < repeat_count; i++) {
-    vm_cycle(vm);
-  }
+  int exit_code;
+  vm_run(vm, &exit_code);
 
-  for (int i = 0; i < 64; i += 2) {
-    uint64_t intval = vm->regs[i];
-    double doubleval = *(double *)(vm->regs + i);
-
-    uint64_t intval2 = vm->regs[i + 1];
-    double doubleval2 = *(double *)(vm->regs + i + 1);
-    printf("reg%02d: (int): %08llx (double): %f\t", i, intval, doubleval);
-    printf("reg%02d: (int): %08llx (double): %f\n", i + 1, intval2, doubleval2);
-  }
-
-  printf("Machine exited with status code %d\n", *(uint8_t *)(vm->regs));
+  printf("Machine exited with status code %d\n", exit_code);
 
   vm_clean(vm);
   exe_clean(exe);
