@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 #include <math.h>
 #include "vm.h"
 #include "exe.h"
@@ -651,7 +652,64 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
-    case op_nop:        break;
+
+    case op_nop: { break; }
+
+    case op_syscall: {
+
+      uint16_t id = *(uint16_t *)vm_stack_pop(vm, 2);
+
+      switch (id) {
+        case VM_SYS_EXIT: {
+          uint8_t exit_code = *(uint8_t *)vm_stack_pop(vm, 1);
+          vm_write_reg(vm, 0 | VM_REGBYTE, exit_code);
+          vm->exit_code = REGULAR_EXIT;
+          vm->running = false;
+          break;
+        }
+
+        case VM_SYS_SLEEP: {
+          double duration = *(double *)vm_stack_pop(vm, 8);
+
+          printf("sleeping for %f seconds\n", duration);
+
+          usleep((unsigned int)(1000 * 1000 * duration));
+          break;
+        }
+
+        case VM_SYS_WRITE: {
+          uint32_t size = *(uint32_t *)vm_stack_pop(vm, 4);
+          uint32_t address = *(uint32_t *)vm_stack_pop(vm, 4);
+
+          // Check if this is a legal address
+          if (!vm_legal_address(address) || !vm_legal_address(address + size - 1)) {
+            vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+            vm->running = false;
+            break;
+          }
+
+          fwrite(vm->memory + address, size, 1, stdout);
+          break;
+        }
+
+        case VM_SYS_PUTS: {
+          uint8_t reg = *(uint8_t *)vm_stack_pop(vm, 1);
+          int64_t value = REG(reg);
+
+          fprintf(stdout, "%lld", value);
+          break;
+        }
+
+        default: {
+          vm->exit_code = INVALID_SYSCALL;
+          vm->running = false;
+          break;
+        }
+      }
+
+      break;
+    }
+
     default:
       vm->exit_code = INVALID_INSTRUCTION;
       vm->running = false;
