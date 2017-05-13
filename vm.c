@@ -666,6 +666,40 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
 
+    case op_write: {
+
+      uint8_t target = vm->memory[ip + 1];
+      uint8_t source = vm->memory[ip + 2];
+
+      uint32_t address = REG(target);
+      uint32_t size = vm_reg_size(source);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      memcpy(vm->memory + address, vm->regs + source, size);
+      break;
+    }
+
+    case op_writec: {
+
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
+      uint8_t source = vm->memory[ip + 5];
+      uint32_t size = vm_reg_size(source);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      memcpy(vm->memory + address, vm->regs + source, size);
+      break;
+    }
+
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
