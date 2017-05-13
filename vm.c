@@ -68,7 +68,7 @@ VMError vm_flash(VM* vm, Executable* exe) {
       return vm_err_executable_too_big;
     }
 
-    memcpy(vm->memory, exe->data, exe->data_size);
+    memmove(vm->memory, exe->data, exe->data_size);
     return vm_err_regular_exit;
   }
 
@@ -88,7 +88,7 @@ VMError vm_flash(VM* vm, Executable* exe) {
     }
 
     // Copy the relevant bytes into the machines memory
-    memcpy(vm->memory + entry.load, exe->data + entry.offset, entry.size);
+    memmove(vm->memory + entry.load, exe->data + entry.offset, entry.size);
   }
 
   return vm_err_regular_exit;
@@ -223,7 +223,7 @@ void vm_stack_write(VM* vm, uint32_t address, uint32_t size) {
     return;
   }
 
-  memcpy(vm->memory + sp - size, vm->memory + address, size);
+  memmove(vm->memory + sp - size, vm->memory + address, size);
   vm_write_reg(vm, VM_REGSP, sp - size);
 }
 
@@ -241,7 +241,7 @@ void vm_stack_write_block(VM* vm, void* block, size_t size) {
     return;
   }
 
-  memcpy(vm->memory + sp - size, block, size);
+  memmove(vm->memory + sp - size, block, size);
   vm_write_reg(vm, VM_REGSP, sp - size);
 }
 
@@ -680,7 +680,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
         return;
       }
 
-      memcpy(vm->memory + address, vm->regs + source, size);
+      memmove(vm->memory + address, vm->regs + source, size);
       break;
     }
 
@@ -696,7 +696,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
         return;
       }
 
-      memcpy(vm->memory + address, vm->regs + source, size);
+      memmove(vm->memory + address, vm->regs + source, size);
       break;
     }
 
@@ -713,7 +713,8 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       }
 
       void* data = vm_stack_pop(vm, size);
-      memcpy(vm->memory + address, data, size);
+      memmove(vm->memory + address, data, size);
+
       break;
     }
 
@@ -729,7 +730,54 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       }
 
       void* data = vm_stack_pop(vm, size);
-      memcpy(vm->memory + address, data, size);
+      memmove(vm->memory + address, data, size);
+
+      break;
+    }
+
+    case op_copy: {
+
+      uint8_t target = REG(vm->memory[ip + 1]);
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 2);
+      uint8_t source = REG(vm->memory[ip + 6]);
+
+      if (!vm_legal_address(target) || !vm_legal_address(target + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      if (!vm_legal_address(source) || !vm_legal_address(source + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      memmove(vm->memory + target, vm->memory + source, size);
+
+      break;
+    }
+
+    case op_copyc: {
+
+      uint32_t target = *(uint32_t *)(vm->memory + ip + 1);
+      uint32_t size = *(uint32_t *)(vm->memory + ip + 5);
+      uint32_t source = *(uint32_t *)(vm->memory + ip + 9);
+
+      if (!vm_legal_address(target) || !vm_legal_address(target + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      if (!vm_legal_address(source) || !vm_legal_address(source + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      memmove(vm->memory + target, vm->memory + source, size);
+
       break;
     }
 
