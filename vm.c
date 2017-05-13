@@ -95,6 +95,23 @@ VMError vm_flash(VM* vm, Executable* exe) {
 }
 
 /*
+ * The main loop of the virtual machine
+ *
+ * Returns the return code of the machine and sets the
+ * *exit_code* pointer to the user-defined exit code
+ * */
+int vm_run(VM* vm, int* exit_code) {
+
+  // Loop until not running anymore
+  while (vm->running) {
+    vm_cycle(vm);
+  }
+
+  *exit_code = REG(0 | VM_REGBYTE);
+  return vm->exit_code;
+}
+
+/*
  * Perform a single cpu cycle in the vm
  * Returns false if no cycle could be performed
  * */

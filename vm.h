@@ -163,6 +163,7 @@ typedef enum {
 VMError vm_create(VM** vm);
 void vm_clean(VM* vm);
 VMError vm_flash(VM* vm, Executable* exe);
+int vm_run(VM* vm, int* exit_code);
 bool vm_cycle(VM* vm);
 void vm_execute(VM* vm, opcode instruction, uint32_t ip);
 uint64_t vm_instruction_length(VM* vm, opcode instruction);
