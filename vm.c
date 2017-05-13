@@ -352,6 +352,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_rpop: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -362,6 +363,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_mov: {
 
       uint8_t target = vm->memory[ip + 1];
@@ -371,6 +373,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_loadi: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -378,6 +381,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_rst: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -385,6 +389,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_add:
     case op_sub:
     case op_mul:
@@ -426,6 +431,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target, result);
       break;
     }
+
     case op_fadd:
     case op_fsub:
     case op_fmul:
@@ -470,6 +476,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       vm_write_reg(vm, target_reg, result);
       break;
     }
+
     case op_inttofp: {
 
       uint8_t source = vm->memory[ip + 1];
@@ -478,6 +485,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_sinttofp: {
 
       uint8_t source = vm->memory[ip + 1];
@@ -486,6 +494,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_fptoint: {
 
       uint8_t source = vm->memory[ip + 1];
@@ -496,6 +505,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_load: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -505,6 +515,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_loadr: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -515,6 +526,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_loads: {
 
       uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
@@ -524,6 +536,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_loadsr: {
 
       uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
@@ -534,6 +547,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_store: {
 
       int32_t offset = *(int32_t *)(vm->memory + ip + 1);
@@ -560,6 +574,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_push: {
 
       uint32_t size = *(uint32_t *)(vm->memory + ip + 1);
@@ -568,6 +583,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
@@ -577,6 +593,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_jzr: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -587,6 +604,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_jmp: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
@@ -594,6 +612,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_jmpr: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -602,6 +621,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_call: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
@@ -610,6 +630,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_callr: {
 
       uint8_t reg = vm->memory[ip + 1];
@@ -619,6 +640,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       break;
     }
+
     case op_ret: {
 
       uint32_t stack_frame_baseadr = REG(VM_REGFP);
