@@ -619,6 +619,22 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
 
+    case op_readc: {
+
+      uint8_t target = vm->memory[ip + 1];
+      uint32_t address = *(uint32_t *)(vm->memory + ip + 2);
+      uint32_t size = vm_reg_size(target);
+
+      if (!vm_legal_address(address) || !vm_legal_address(address + size)) {
+        vm->exit_code = ILLEGAL_MEMORY_ACCESS;
+        vm->running = false;
+        return;
+      }
+
+      vm_move_mem_to_reg(vm, target, address, size);
+      break;
+    }
+
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
