@@ -12,9 +12,8 @@ vm: $(VM_OBJS)
 
 clean:
 	rm -f .DS_Store
-	rm -rf bin
-	rm -rf obj
-	mkdir bin obj
+	rm -rf bin/*
+	rm -rf obj/*
 
 setup:
 	mkdir bin obj
