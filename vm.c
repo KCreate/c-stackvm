@@ -454,6 +454,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
           break;
       }
 
+      vm_set_zero_bit(vm, result == 0);
       vm_write_reg(vm, target, result);
       break;
     }
@@ -499,6 +500,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
           break;
       }
 
+      vm_set_zero_bit(vm, result == (double)0);
       vm_write_reg(vm, target_reg, result);
       break;
     }
@@ -550,6 +552,54 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
           break; // can't happen
       }
 
+      break;
+    }
+
+    case op_shr:
+    case op_shl:
+    case op_and:
+    case op_xor:
+    case op_or: {
+
+      uint8_t left_reg = vm->memory[ip + 1];
+      uint8_t right_reg = vm->memory[ip + 2];
+
+      uint64_t left = REG(left_reg);
+      uint64_t right = REG(right_reg);
+
+      uint64_t result;
+
+      switch (instruction) {
+        case op_shr:
+          result = left << right;
+          break;
+        case op_shl:
+          result = left >> right;
+          break;
+        case op_and:
+          result = left & right;
+          break;
+        case op_xor:
+          result = left ^ right;
+          break;
+        case op_or:
+          result = left | right;
+          break;
+        default:
+          break; // can't happen
+      }
+
+      vm_set_zero_bit(vm, result == 0);
+      break;
+    }
+
+    case op_not: {
+
+      uint8_t reg = vm->memory[ip + 1];
+      uint64_t value = REG(reg);
+      value = ~value;
+      vm_set_zero_bit(vm, value == 0);
+      vm_write_reg(vm, reg, value);
       break;
     }
 
