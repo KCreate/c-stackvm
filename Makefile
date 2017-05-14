@@ -5,7 +5,6 @@ VM_OBJS=obj/main.o obj/vm.o obj/exe.o
 
 assemble: vm test.asm
 	stackvm build test.asm -s -o test.bc
-	bin/vm test.bc
 
 vm: $(VM_OBJS)
 	$(CC) $(CFLAGS) $(VM_OBJS) -dead_strip -o bin/vm
