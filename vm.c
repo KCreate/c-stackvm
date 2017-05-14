@@ -9,7 +9,6 @@
 
 // Support macros
 #define REG(X) vm_read_reg(vm, X)
-#define REGF(X) *(double *)(&(vm_read_reg(vm, X)))
 
 /*
  * Allocate the memory for VM struct
