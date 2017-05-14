@@ -351,8 +351,17 @@ bool vm_legal_address(uint32_t address) {
 /*
  * Return true if the zero bit of the flags register is set
  * */
-bool vm_zero_bit_set(VM* vm) {
+bool vm_is_zero_bit_set(VM* vm) {
   return (REG(VM_REGFLAGS) & VM_FLAG_ZERO) == 1;
+}
+
+/*
+ * Set the zero bit of the vm to a specific value
+ * */
+void vm_set_zero_bit(VM* vm, bool value) {
+  uint64_t flags = REG(VM_REGFLAGS);
+  flags ^= (-value ^ flags) & 1;
+  vm_write_reg(vm, VM_REGFLAGS, flags);
 }
 
 /*
@@ -494,6 +503,56 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       break;
     }
 
+    case op_flt:
+    case op_fgt:
+    case op_cmp:
+    case op_lt:
+    case op_gt:
+    case op_ult:
+    case op_ugt: {
+
+      uint8_t left = vm->memory[ip + 1];
+      uint8_t right = vm->memory[ip + 2];
+
+      uint64_t left_uncasted_value = REG(left);
+      uint64_t right_uncasted_value = REG(right);
+
+      double left_f = *(double *)(&left_uncasted_value);
+      double right_f = *(double *)(&right_uncasted_value);
+      uint64_t left_ui = *(uint64_t *)(&left_uncasted_value);
+      uint64_t right_ui = *(uint64_t *)(&right_uncasted_value);
+      int64_t left_i = *(int64_t *)(&left_uncasted_value);
+      int64_t right_i = *(int64_t *)(&right_uncasted_value);
+
+      switch (instruction) {
+        case op_flt:
+          vm_set_zero_bit(vm, left_f < right_f);
+          break;
+        case op_fgt:
+          vm_set_zero_bit(vm, left_f > right_f);
+          break;
+        case op_cmp:
+          vm_set_zero_bit(vm, left_ui == right_ui);
+          break;
+        case op_lt:
+          vm_set_zero_bit(vm, left_i < right_i);
+          break;
+        case op_gt:
+          vm_set_zero_bit(vm, left_i > right_i);
+          break;
+        case op_ult:
+          vm_set_zero_bit(vm, left_ui < right_ui);
+          break;
+        case op_ugt:
+          vm_set_zero_bit(vm, left_ui > right_ui);
+          break;
+        default:
+          break; // can't happen
+      }
+
+      break;
+    }
+
     case op_inttofp: {
 
       uint8_t source = vm->memory[ip + 1];
@@ -517,7 +576,6 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       uint8_t source = vm->memory[ip + 1];
       uint64_t reg_content = REG(source);
       double value = *(double *)(&reg_content);
-      printf("converting %f inside %d\n", value, source);
       vm_write_reg(vm, source, (int64_t)value);
 
       break;
@@ -784,7 +842,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
     case op_jz: {
 
       uint32_t address = *(uint32_t *)(vm->memory + ip + 1);
-      if (vm_zero_bit_set(vm)) {
+      if (vm_is_zero_bit_set(vm)) {
         vm_write_reg(vm, VM_REGIP, address);
       }
 
@@ -795,7 +853,7 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
 
       uint8_t reg = vm->memory[ip + 1];
       uint32_t address = REG(reg);
-      if (vm_zero_bit_set(vm)) {
+      if (vm_is_zero_bit_set(vm)) {
         vm_write_reg(vm, VM_REGIP, address);
       }
 
@@ -854,9 +912,6 @@ void vm_execute(VM* vm, opcode instruction, uint32_t ip) {
       uint32_t ra = *(uint32_t *)(vm->memory + stack_frame_baseadr + 4);
       uint32_t ac = *(uint32_t *)(vm->memory + stack_frame_baseadr + 8);
       uint32_t sp = stack_frame_baseadr + 12 + ac;
-
-      printf("stack_frame_baseadr: %08x\n", stack_frame_baseadr);
-      printf("new stack pointer: %08x\n", sp);
 
       // Check if the new stack pointer is out of bounds
       if (!vm_legal_address(sp)) {

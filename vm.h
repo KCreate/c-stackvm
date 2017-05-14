@@ -65,12 +65,12 @@ typedef enum opcode {
   op_ult,
   op_ugt,
 
-  op_shr,
-  op_shl,
-  op_and,
-  op_xor,
-  op_or,
-  op_not,
+    op_shr,
+    op_shl,
+    op_and,
+    op_xor,
+    op_or,
+    op_not,
 
   op_inttofp,
   op_sinttofp,
