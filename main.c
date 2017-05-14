@@ -63,11 +63,9 @@ int main(int argc, char** argv) {
   int exit_code;
   vm_run(vm, &exit_code);
 
-  printf("Machine exited with status code %d\n", exit_code);
-
   vm_clean(vm);
   exe_clean(exe);
   fclose(fp);
 
-  return 0;
+  return exit_code;
 }
